@@ -7,14 +7,14 @@ from codecs import open
 from os import path
 
 here = path.abspath(path.dirname(__file__))
-exec(open('metutilpy/version.py').read())
+exec(open('netcdfpy/version.py').read())
 
 # Get the long description from the relevant file
 with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='metutilpy',
+    name='netcdfpy',
 
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
@@ -25,7 +25,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/metno/metutilpy',
+    url='https://github.com/metno/netcdfpy',
 
     # Author details
     author='Thomas Nipen',
@@ -80,7 +80,7 @@ setup(
     #    'test': ['pytest'],
     },
 
-    test_suite="metutilpy.tests",
+    test_suite="netcdfpy.tests",
 
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
@@ -100,7 +100,7 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points={
         'console_scripts': [
-            'metutilpy=metutilpy:main',
+            'netcdfpy=netcdfpy:main',
         ],
     },
 )
