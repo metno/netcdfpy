@@ -1,8 +1,10 @@
+import netCDF4
 from netcdfpy.interpolation import Interpolation
 
 class Netcdf(object):
     def __init__(self, filename):
         self.filename = filename
+        self.file = netCDF4.Dataset(filename, 'r')
 
     @property
     def lats(self):
