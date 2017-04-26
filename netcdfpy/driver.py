@@ -15,8 +15,9 @@ def run(argv):
     filename="http://thredds.met.no/thredds/dodsC/meps25files/meps_det_extracted_2_5km_latest.nc"
     file = Netcdf(filename)
 
-    data = file.slice("air_temperature_2m", time=0, ens=0)
 
+    data = file.slice("air_temperature_2m",time=[0,3])
+    print data.shape
 
 if __name__ == '__main__':
     run(sys.argv)
