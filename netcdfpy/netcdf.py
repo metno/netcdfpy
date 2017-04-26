@@ -15,7 +15,14 @@ class Netcdf(object):
         Returns:
            np.array: 2D array of latitudes
         """
-        raise NotImplementedError()
+        if "latitude" in self.file.variables:
+             latvar = self.file.variables["latitude"]
+        elif "lat" in self.file.variables:
+             latvar = self.file.variables["lat"]
+        # TODO: if lat/lon are 1D, create a 2D mesh
+        # TODO: Reorder dimensions if x/y are flipped
+
+        return latvar
 
     @property
     def lons(self):
@@ -23,7 +30,13 @@ class Netcdf(object):
         Returns:
            np.array: 2D array of longitudes
         """
-        raise NotImplementedError()
+        if "longitude" in self.file.variables:
+             lonvar = self.file.variables["longitude"]
+        elif "lon" in self.file.variables:
+             lonvar = self.file.variables["lon"]
+        # TODO: if lat/lon are 1D, create a 2D mesh
+
+        return lonvar
 
     def num_ens(self, field):
         pass
@@ -54,25 +67,11 @@ class Netcdf(object):
         """
 
 
-        if "latitude" in self.file.variables:
-             latvar = self.file.variables["latitude"]
-             lonvar = self.file.variables["longitude"]
-        elif "lat" in self.file.variables:
-             latvar = self.file.variables["lat"]
-             lonvar = self.file.variables["lon"]
-
-        lons = lonvar[:]
-        lats = latvar[:]
-
-        print(lons.shape)
-        print(lats.shape)
-
         if ( time == None): time=[0]
         if ( height == None): height=[0]
         if ( ens == None): ens=[0]
-        dim_x=len(lons)
-        dim_x=739
-        dim_y=len(lats)
+        dim_x=self.lons.shape[1]
+        dim_y=self.lons.shape[0]
         dim_t=len(time)
         dim_height=len(height)
         dim_ens=len(ens)
@@ -82,7 +81,7 @@ class Netcdf(object):
         print(ens)
 
         # This is a test assuming this structure
-        field_read=self.file[field][time,height,0:dim_y,0:dim_x]
+        field_read=self.file[field][time,height,:,:]
 
 
         field=np.reshape(field_read,[dim_x,dim_y,dim_t,dim_height,dim_ens])
