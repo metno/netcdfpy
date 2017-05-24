@@ -1,3 +1,5 @@
+from scipy.interpolate import griddata
+
 class Interpolation(object):
    pass
    def get(self, lat, lon, lats, lons, field):
@@ -5,6 +7,10 @@ class Interpolation(object):
 
 
 class NearestNeighbour(Interpolation):
+
+   #points=self.lats
+
+   #field_in = griddata(points,values_vec,xi,method='nearest')
    pass
 
 

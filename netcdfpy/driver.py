@@ -16,8 +16,12 @@ def run(argv):
     file = Netcdf(filename)
 
 
-    data = file.slice("air_temperature_2m",time=[0,3])
+    data = file.slice("air_temperature_2m",time=[0,3],height=[2])
     print data.shape
+    #x=file.slice("x")
+    data = file.slice("relative_humidity_2m",time=[3])
+    print data.shape
+    data = file.slice("air_temperature_z",time=[7,8,12],height=[120,80])
 
 if __name__ == '__main__':
     run(sys.argv)
