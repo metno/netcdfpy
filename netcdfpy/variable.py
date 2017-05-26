@@ -18,6 +18,7 @@ class Axis(Enum):
     Height = 8
     ReferenceTime = 9
     Realization = 10
+    Hybrid = 11
 
 
 class Variable(object):
@@ -43,6 +44,8 @@ class Variable(object):
                     types.append(Axis.Height)
                 elif dim_name == "ensemble_member":
                     types.append(Axis.Realization)
+                elif dim_name == "time":
+                    types.append(Axis.Time)
                 else:
                     types.append(Axis.Undefined)
         return types
@@ -62,7 +65,7 @@ class Variable(object):
            np.array: 2D array of latitudes
         """
 
-        latvals=None
+        latvals=np.array([])
         axis_types = self.axis_types
         for i in range(0, len(axis_types)):
             if axis_types[i] == Axis.Lat:
@@ -71,9 +74,9 @@ class Variable(object):
                 latvals = self.file.variables[self.dim_names[i]]
 
                 # TODO: if lat/lon are 1D, create a 2D mesh
-                # TODO: Reorder dimensions if x/y are flipped
 
-        if latvals == None:  netcdfpy.util.error("No latitude found for " + self.var_name)
+
+        if latvals.shape[0] == 0 :  netcdfpy.util.error("No latitude found for " + self.var_name)
         print latvals.shape
         return latvals
 
@@ -84,7 +87,7 @@ class Variable(object):
            np.array: 2D array of longitudes
         """
 
-        lonvals=None
+        lonvals=np.array([])
         axis_types=self.axis_types
         for i in range(0,len(axis_types)):
             if axis_types[i] == Axis.Lon:
@@ -93,9 +96,9 @@ class Variable(object):
                 lonvals = self.file.variables[self.dim_names[i]]
 
                 # TODO: if lat/lon are 1D, create a 2D mesh
-                # TODO: Reorder dimensions if x/y are flipped
 
-        if lonvals == None:  netcdfpy.util.error("No longitude found for " + self.var_name)
+
+        if lonvals.shape[0] == 0:  netcdfpy.util.error("No longitude found for " + self.var_name)
         return lonvals
 
     @property
@@ -105,13 +108,13 @@ class Variable(object):
             np.array: 1D array of times
         """
 
-        times = None
+        times = np.array([])
         axis_types = self.axis_types
         for i in range(0, len(axis_types)):
             if axis_types[i] == Axis.Time:
                 times = self.file.variables[self.dim_names[i]]
 
-        if times == None: netcdfpy.util.warning("No time found for "+self.var_name)
+        if times.shape[0] == 0: netcdfpy.util.warning("No time found for "+self.var_name)
         return times
 
     @property
@@ -121,15 +124,15 @@ class Variable(object):
             np.array: 1D array of ensemble members
         """
 
-        members=None
+        members=np.array([])
         axis_types = self.axis_types
         for i in range(0, len(axis_types)):
             if axis_types[i] == Axis.Realization:
                 members = self.file.variables[self.dim_names[i]]
-        return members
 
-
-        if members == None: netcdfpy.util.warning("No ensemble members found for " + self.var_name)
+        print "member:"
+        print members.shape
+        if members.shape[0] == 0: netcdfpy.util.warning("No ensemble members found for " + self.var_name)
         return members
 
     @property
@@ -139,13 +142,13 @@ class Variable(object):
             np.array: 1D array of levels
         """
 
-        levels = None
+        levels = np.array([])
         axis_types = self.axis_types
         for i in range(0, len(axis_types)):
-            if axis_types[i] == Axis.Height:
+            if axis_types[i] == Axis.Height or axis_types[i] == Axis.Pressure or axis_types[i] == Axis.GeoZ or axis_types[i] == Axis.Hybrid:
                 levels = self.file.variables[self.dim_names[i]]
 
-        if levels == None: netcdfpy.util.warning("No levels found for " + self.var_name)
+        if levels.shape[0] == 0: netcdfpy.util.warning("No levels found for " + self.var_name)
         return levels
 
 
