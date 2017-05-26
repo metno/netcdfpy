@@ -2,7 +2,7 @@ import netCDF4
 from netcdfpy.interpolation import Interpolation
 import netcdfpy.util
 from netcdfpy.variable import Variable,Axis
-import netcdfpy.variable
+from netcdfpy.interpolation import NearestNeighbour,Bilinear,Linear
 import netCDF4
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,8 +23,8 @@ class Netcdf(object):
         """
         pass
 
-    def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None, lons=None, lats=None,
-              deaccumulate=False, plot=False):
+    def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None,
+              deaccumulate=False, plot=False, var=None):
         """
         Assembles a 5D field in order lon,lat,time,height,ensemble
 
@@ -35,15 +35,17 @@ class Netcdf(object):
            time (list): Time index. If None, return all.
            xcoords: X-axis coordinates to subset
            ycords: Y-axis coordinates to subset
-           lons (list): List of longitudes to interpolate to
-           lats (list): List of latitudes to interpolate to 
            deaccumulate (boolean): Deaccumulate field
+           var(object): Call slice with an existing var object
 
         Returns:
          np.array: 5D array with values
         """
 
-        var=Variable(self.file,var_name)
+        if var == None:
+            var=Variable(self.file,var_name)
+        else:
+            if var.var_name != var_name: netcdfpy.util.error("Mismatch in variable name!")
 
         print "Reading variable "+var.var_name
         times_to_read=[]
@@ -98,7 +100,9 @@ class Netcdf(object):
         lats=var.lats
 
         # Dimensions of the "problem"
-        dim_x = lons.shape[0]
+        print lons.shape
+        print lats.shape
+        dim_x = lons.shape[1]
         dim_y = lats.shape[0]
         dim_t = max(len(times_to_read),1)
         dim_levels = max(len(levels_to_read),1)
@@ -108,8 +112,8 @@ class Netcdf(object):
         print str(dim_x) + " " + str(dim_y) + " " + str(dim_t) + " " + str(dim_levels) + " " + str(dim_members)
 
 
-        lon_ind=[(i) for i in range(0,len(lons))]
-        lat_ind = [(i) for i in range(0, len(lats))]
+        lon_ind=[(i) for i in range(0,dim_x)]
+        lat_ind = [(i) for i in range(0,dim_y)]
         dims=[]
         types=var.axis_types
         mapping={} # Map axis to output axis
@@ -189,9 +193,6 @@ class Netcdf(object):
 
         #TODO:  Deaccumulate
 
-        #TODO: Interpolations
-
-
         if ( plot):
             for t in range(0,dim_t):
                 for z in range(0,dim_levels):
@@ -203,19 +204,49 @@ class Netcdf(object):
         print "Shape of output: "+str(field.shape)
         return field
 
-    def point(self, field, lat, lon, height=0, ens=0, time=None, interpolation=None):
+    def points(self, var_name, lons,lats, levels=None, members=None, times=None, xcoords=None, ycoords=None,
+              deaccumulate=False, interpolation="nearest"):
+
         """
-        Assembles a 2D horizontal field for a specific time step
+        Assembles a 5D slice and interpolates it to requested positions
 
         Arguments:
-         field (str): Name of field to retrieve
-         I (np.array): I coordinate
-         J (np.array): J coordinate
-         height (int): Height index. If None, return all.
-         time (int): Index. If None, return all.
+
 
         Returns:
-         np.array: 2D array with values
+         np.array: 4D array with inpterpolated values in order pos,time,height,ensemble
+
         """
 
-        raise NotImplementedError()
+        var = Variable(self.file, var_name)
+        field=self.slice(var_name,levels=levels, members=members, times=times, xcoords=xcoords, ycoords=ycoords,
+              deaccumulate=deaccumulate)
+
+        if lons == None or lats == None:
+            netcdfpy.util.error("You must set lons and lats when interpolation is set!")
+
+        if interpolation == "nearest":
+            print "Nearest neighbour"
+            if not hasattr(self,"nearest_grid_cells"):
+                nn = NearestNeighbour()
+                self.nearest_grid_cells=nn.interpolated_values(field,lons,lats,var)
+
+            print "Closest grid points: ",self.nearest_grid_cells
+
+            interpolated_field=np.empty([len(lons),field.shape[2],field.shape[3],field.shape[4]])
+            for i in range(0,len(lons)):
+                ind_x = self.nearest_grid_cells[i][0]
+                ind_y = self.nearest_grid_cells[i][1]
+                for t in range(0, field.shape[2]):
+                    for z in range(0, field.shape[3]):
+                        for m in range(0, field.shape[4]):
+                            interpolated_field[i][t][z][m]=field[ind_x][ind_y][t][z][m]
+                            print ind_x,ind_y,t,z,m,field[ind_x][ind_y][t][z][m]
+            # Comparison
+            #field = nn.__interpolated_values__(field,lons,lats,var)
+
+        else:
+            netcdfpy.util.error("Interpolation type "+interpolation+" not implemented!")
+
+        print interpolated_field.shape
+        return interpolated_field

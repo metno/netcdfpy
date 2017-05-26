@@ -1,5 +1,4 @@
 import netCDF4
-from netcdfpy.interpolation import Interpolation
 import netCDF4
 import numpy as np
 import netcdfpy.util
@@ -71,10 +70,11 @@ class Variable(object):
             if axis_types[i] == Axis.Lat:
                 latvals = self.file.variables[self.dim_names[i]]
             elif axis_types[i] == Axis.GeoY:
-                latvals = self.file.variables[self.dim_names[i]]
+                #latvals = self.file.variables[self.dim_names[i]]
 
                 # TODO: if lat/lon are 1D, create a 2D mesh
-
+                # TODO: Assume the name for now. Must be found in attributes
+                latvals = self.file.variables["latitude"]
 
         if latvals.shape[0] == 0 :  netcdfpy.util.error("No latitude found for " + self.var_name)
         print latvals.shape
@@ -93,10 +93,11 @@ class Variable(object):
             if axis_types[i] == Axis.Lon:
                 lonvals = self.file.variables[self.dim_names[i]]
             elif axis_types[i] == Axis.GeoX:
-                lonvals = self.file.variables[self.dim_names[i]]
+                #lonvals = self.file.variables[self.dim_names[i]]
 
                 # TODO: if lat/lon are 1D, create a 2D mesh
-
+                # TODO: Assume the name for now. Must be found in attributes
+                lonvals = self.file.variables["longitude"]
 
         if lonvals.shape[0] == 0:  netcdfpy.util.error("No longitude found for " + self.var_name)
         return lonvals

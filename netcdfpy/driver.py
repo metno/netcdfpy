@@ -18,8 +18,10 @@ def run(argv):
     file = Netcdf(filename)
 
 
-    data = file.slice("air_temperature_2m",times=[0,3],levels=[2])
-    #grid=np.reshape(data[:,:,:,:,:],(data.shape[0],data.shape[1]))
+    data = file.points("air_temperature_2m",times=[0,3],levels=[2],lons=[10,11],lats=[60,61],interpolation="nearest")
+    print data.shape
+    data= file.points("relative_humidity_2m",times=[0,3,6,9,12],levels=[2],lons=[10,11],lats=[60,61],interpolation="nearest")
+    print data.shape
     #plt.imshow(grid)
     #plt.show()
     #print data.shape
