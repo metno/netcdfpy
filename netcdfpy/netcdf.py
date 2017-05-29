@@ -24,7 +24,7 @@ class Netcdf(object):
         pass
 
     def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None,
-              deaccumulate=False, plot=False, var=None):
+              deaccumulate=False, plot=False, var=None, instantanious=0. ):
         """
         Assembles a 5D field in order lon,lat,time,height,ensemble
 
@@ -49,23 +49,28 @@ class Netcdf(object):
 
         print "Reading variable "+var.var_name
         times_to_read=[]
+        prev_time_steps=[]
         if times == None:
             for i in range(0,var.times.shape[0]):
                 times_to_read.append(i)
+                if i > 0:
+                    prev_time_steps.append(i-1)
+                else:
+                    prev_time_steps.append(0)
         else:
-            print "Time provided in call"
+            print "Time provided in call "+str(times)
             times_in_var = var.times
             for i in range(0, times_in_var.shape[0]):
                 for j in range(0, len(times)):
-                    if i == j:
+                    # Time steps requested
+                    if i == times[j]:
                         times_to_read.append(times[j])
+                        if i > 0:
+                            prev_time_steps.append(i-1)
+                        else:
+                            prev_time_steps.append(0)
 
-                    # TODO: possible to set array indices from input
-                    #if times_in_var[i] == times[j]:
-                    #    times_to_read.append(i)
-
-
-        # TODO: If accuumulated, read extra time step if needed
+                    # TODO: possible to set array indices from input?
 
 
         levels_to_read=[]
@@ -115,28 +120,47 @@ class Netcdf(object):
         lon_ind=[(i) for i in range(0,dim_x)]
         lat_ind = [(i) for i in range(0,dim_y)]
         dims=[]
+        prev_dims=[]
+        time_index=-1
         types=var.axis_types
         mapping={} # Map axis to output axis
         for i in range(0,len(types)):
             if types[i] == Axis.GeoX or types[i] == Axis.Lon:
                 dims.append(lon_ind)
+                prev_dims.append(lon_ind)
                 mapping[i]=0
             if types[i] == Axis.GeoY or types[i] == Axis.Lat:
                 dims.append(lat_ind)
+                prev_dims.append(lat_ind)
                 mapping[i]=1
             if types[i] == Axis.Time:
                 dims.append(times_to_read)
+                prev_dims.append(prev_time_steps)
                 mapping[i]=2
+                time_index=i
             if types[i] == Axis.Height or types[i] == Axis.Pressure:
                 dims.append(levels_to_read)
+                prev_dims.append(levels_to_read)
                 mapping[i]=3
             if types[i] == Axis.Realization:
                 dims.append(members_to_read)
+                prev_dims.append(members_to_read)
                 mapping[i]=4
 
 
         print "Read "+var.var_name+" with dimensions: "+str(dims)
+        if deaccumulate: print "Deaccumulate previous dimensions: "+str(prev_dims)
         field_read = self.file[var.var_name][dims]
+
+        # Deaccumulation
+        if deaccumulate:
+            original_field=field_read
+            previous_field= self.file[var.var_name][prev_dims]
+            field_read =np.subtract(original_field,previous_field)
+
+        # Create instantanious values
+        if instantanious > 0:
+            field_read = np.divide(field_read,instantanious)
 
         # TODO: It must be a clever way for this.... Native numpy routines???
         print "Prepare output in 5-D array"
