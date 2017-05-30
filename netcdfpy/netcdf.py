@@ -1,17 +1,21 @@
-import netCDF4
 from netcdfpy.interpolation import Interpolation
-import netcdfpy.util
+from netcdfpy.util import error,info,log,warning,setup_custom_logger
 from netcdfpy.variable import Variable,Axis
 from netcdfpy.interpolation import NearestNeighbour,Bilinear,Linear
 import netCDF4
 import numpy as np
 import matplotlib.pyplot as plt
+import cfunits
+
+logger = setup_custom_logger('root')
 
 class Netcdf(object):
     def __init__(self, filename):
         self.filename = filename
         self.file = netCDF4.Dataset(filename, "r")
 
+    def __del__(self):
+        self.file.close()
 
     def num_height(self, field):
         pass
@@ -24,19 +28,23 @@ class Netcdf(object):
         pass
 
     def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None,
-              deaccumulate=False, plot=False, var=None, instantanious=0. ):
+              deaccumulate=False, plot=False, var=None, instantanious=0., units=None ):
         """
         Assembles a 5D field in order lon,lat,time,height,ensemble
 
         Arguments:
-           var_name (str): Name of field to retrieve
-           height (list): Height index. If None, return all.
-           ens (list): Ensemble index. If None, return all.
-           time (list): Time index. If None, return all.
-           xcoords: X-axis coordinates to subset
-           ycords: Y-axis coordinates to subset
-           deaccumulate (boolean): Deaccumulate field
-           var(object): Call slice with an existing var object
+            var_name (str): Name of field to retrieve
+            height (list): Height index. If None, return all.
+            ens (list): Ensemble index. If None, return all.
+            time (list): Time index. If None, return all.
+            xcoords: X-axis coordinates to subset
+            ycords: Y-axis coordinates to subset
+            deaccumulate (boolean): Deaccumulate field
+            var
+            plot
+            instantanious
+            units
+            var(object): Call slice with an existing var object
 
         Returns:
          np.array: 5D array with values
@@ -45,9 +53,9 @@ class Netcdf(object):
         if var == None:
             var=Variable(self.file,var_name)
         else:
-            if var.var_name != var_name: netcdfpy.util.error("Mismatch in variable name!")
+            if var.var_name != var_name: error("Mismatch in variable name!")
 
-        print "Reading variable "+var.var_name
+        log(1,"Reading variable "+var.var_name)
         times_to_read=[]
         prev_time_steps=[]
         if times == None:
@@ -58,7 +66,7 @@ class Netcdf(object):
                 else:
                     prev_time_steps.append(0)
         else:
-            print "Time provided in call "+str(times)
+            log(2,"Time provided in call "+str(times))
             times_in_var = var.times
             for i in range(0, times_in_var.shape[0]):
                 for j in range(0, len(times)):
@@ -70,16 +78,15 @@ class Netcdf(object):
                         else:
                             prev_time_steps.append(0)
 
-                    # TODO: possible to set array indices from input?
+                    # TODO: possible to set array indices from input time values?
 
 
         levels_to_read=[]
         if levels == None:
             for i in range(0, var.levels.shape[0]):
                 levels_to_read.append(i)
-                print levels_to_read[i]
         else:
-            print "Level provided in call. Set index from value"
+            log(2,"Level provided in call. Set index from value")
             # TODO: specify index
             levels_in_var=var.levels
             for i in range(0, levels_in_var.shape[0]):
@@ -92,130 +99,89 @@ class Netcdf(object):
             for i in range(0, var.members.shape[0]):
                 members_to_read.append(i)
         else:
-            print "Ensemble members provided in call"
+            log(2,"Ensemble members provided in call")
             members_in_var=var.members
             for i in range(0, members_in_var.shape[0]):
                 for j in range(0, len(members)):
                     if members_in_var[i] == members[j]:
                         members_to_read.append(i)
 
-            if len(members_to_read) == 0: netcdfpy.util.error("No ensemble members found for " + var.var_name)
+            if len(members_to_read) == 0: error("No ensemble members found for " + var.var_name)
 
         lons=var.lons
         lats=var.lats
 
         # Dimensions of the "problem"
-        print lons.shape
-        print lats.shape
         dim_x = lons.shape[1]
         dim_y = lats.shape[0]
         dim_t = max(len(times_to_read),1)
         dim_levels = max(len(levels_to_read),1)
         dim_members = max(len(members_to_read),1)
 
-        print "Dimensions in output"
-        print str(dim_x) + " " + str(dim_y) + " " + str(dim_t) + " " + str(dim_levels) + " " + str(dim_members)
+        log(3,"Dimensions in output")
+        log(3,str(dim_x) + " " + str(dim_y) + " " + str(dim_t) + " " + str(dim_levels) + " " + str(dim_members))
 
 
         lon_ind=[(i) for i in range(0,dim_x)]
         lat_ind = [(i) for i in range(0,dim_y)]
         dims=[]
         prev_dims=[]
-        time_index=-1
         types=var.axis_types
         mapping={} # Map axis to output axis
         for i in range(0,len(types)):
             if types[i] == Axis.GeoX or types[i] == Axis.Lon:
                 dims.append(lon_ind)
                 prev_dims.append(lon_ind)
-                mapping[i]=0
+                mapping[0]=i
             if types[i] == Axis.GeoY or types[i] == Axis.Lat:
                 dims.append(lat_ind)
                 prev_dims.append(lat_ind)
-                mapping[i]=1
+                mapping[1]=i
             if types[i] == Axis.Time:
                 dims.append(times_to_read)
                 prev_dims.append(prev_time_steps)
-                mapping[i]=2
-                time_index=i
+                mapping[2]=i
             if types[i] == Axis.Height or types[i] == Axis.Pressure:
                 dims.append(levels_to_read)
                 prev_dims.append(levels_to_read)
-                mapping[i]=3
+                mapping[3]=i
             if types[i] == Axis.Realization:
                 dims.append(members_to_read)
                 prev_dims.append(members_to_read)
-                mapping[i]=4
+                mapping[4]=i
 
 
-        print "Read "+var.var_name+" with dimensions: "+str(dims)
-        if deaccumulate: print "Deaccumulate previous dimensions: "+str(prev_dims)
-        field_read = self.file[var.var_name][dims]
+        log(2,"Read "+var.var_name+" with dimensions: "+str(dims))
+        if deaccumulate: log(2,"Deaccumulate previous dimensions: "+str(prev_dims))
+        field = self.file[var.var_name][dims]
+        if units != None: field=cfunits.Units.conform(field,cfunits.Units(var.units),cfunits.Units(units))
 
         # Deaccumulation
         if deaccumulate:
-            original_field=field_read
+            original_field=field
             previous_field= self.file[var.var_name][prev_dims]
-            field_read =np.subtract(original_field,previous_field)
+            if units != None: previous_field = cfunits.Units.conform(previous_field,cfunits.Units(var.units),cfunits.Units(units))
+            field =np.subtract(original_field,previous_field)
 
         # Create instantanious values
         if instantanious > 0:
-            field_read = np.divide(field_read,instantanious)
+            field = np.divide(field,instantanious)
 
-        # TODO: It must be a clever way for this.... Native numpy routines???
-        print "Prepare output in 5-D array"
-        field=np.empty([dim_x,dim_y,dim_t,dim_levels,dim_members])
-        for i in range(0, dim_x):
-            for j in range(0, dim_y):
-                for k in range(0, dim_t):
-                    for l in range(0, dim_levels):
-                        for m in range(0, dim_members):
+        # Add extra dimensions
+        i=0
+        reverse_mapping=[]
+        for d in range(0,5):
+            if d not in mapping:
+                log(3,"Adding dimension " + str(d))
+                field=np.expand_dims(field,len(dims)+i)
+                reverse_mapping.append(d)
+                i=i+1
+            else:
+                reverse_mapping.append(mapping[d])
 
-                            for x in range(0, len(types)):
-                                ind = -1
-                                # Longitude
-                                if mapping[x] == 0:
-                                    ind = i
-                                # Latitude
-                                elif mapping[x] == 1:
-                                    ind = j
-                                elif mapping[x] == 2:
-                                    ind = k
-                                elif mapping[x] == 3:
-                                    ind = l
-                                elif mapping[x] == 4:
-                                    ind = m
-                                else:
-                                    netcdfpy.util.error("This should never happen!")
-
-                                if x == 0:
-                                    ii = ind
-                                elif x == 1:
-                                    jj = ind
-                                elif x == 2:
-                                    kk = ind
-                                elif x == 3:
-                                    ll = ind
-                                elif x == 4:
-                                    mm = ind
-                                else:
-                                    netcdfpy.util.error("This should never happen!")
-
-                            if len(types) == 2:
-                                read_value = field_read[ii,jj]
-                            elif len(types) == 3:
-                                read_value = field_read[ii,jj,kk]
-                            elif len(types) == 4:
-                                read_value = field_read[ii,jj,kk,ll]
-                            elif len(types) == 5:
-                                read_value = field_read[ii,jj,kk,ll,mm]
-                            else:
-                                netcdfpy.util.error("Dimensions must be between 2 and 5")
-
-                            # Finally set value
-                            field[i][j][k][l][m]=read_value
-
-        #TODO:  Deaccumulate
+        # Transpose to 5D array
+        log(1,"Transpose to 5D array")
+        field=np.transpose(field,reverse_mapping)
 
         if ( plot):
             for t in range(0,dim_t):
@@ -225,7 +191,7 @@ class Netcdf(object):
                         plt.show()
 
 
-        print "Shape of output: "+str(field.shape)
+        log(2,"Shape of output: "+str(field.shape))
         return field
 
     def points(self, var_name, lons,lats, levels=None, members=None, times=None, xcoords=None, ycoords=None,
@@ -247,15 +213,15 @@ class Netcdf(object):
               deaccumulate=deaccumulate)
 
         if lons == None or lats == None:
-            netcdfpy.util.error("You must set lons and lats when interpolation is set!")
+            error("You must set lons and lats when interpolation is set!")
 
         if interpolation == "nearest":
-            print "Nearest neighbour"
+            log(2,"Nearest neighbour")
             if not hasattr(self,"interpolated_values"):
                 nn = NearestNeighbour()
                 self.interpolated_values=nn.interpolated_values(field,lons,lats,var)
 
-            print "Closest grid points: ",self.interpolated_values
+            log(3,"Closest grid points: "+str(self.interpolated_values))
 
             interpolated_field=np.empty([len(lons),field.shape[2],field.shape[3],field.shape[4]])
             for i in range(0,len(lons)):
@@ -270,7 +236,7 @@ class Netcdf(object):
             #field = nn.__interpolated_values__(field,lons,lats,var)
 
         else:
-            netcdfpy.util.error("Interpolation type "+interpolation+" not implemented!")
+            error("Interpolation type "+interpolation+" not implemented!")
 
-        print interpolated_field.shape
+        log(3,str(interpolated_field.shape))
         return interpolated_field

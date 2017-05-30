@@ -1,8 +1,11 @@
 import netCDF4
 import netCDF4
 import numpy as np
-import netcdfpy.util
+from netcdfpy.util import log,warning,error
 import re
+import logging
+
+logger = logging.getLogger('root')
 
 from enum import Enum
 class Axis(Enum):
@@ -58,6 +61,13 @@ class Variable(object):
         return names
 
     @property
+    def units(self):
+        units=None
+        if self.file.variables[self.var_name].units:
+            units=self.file.variables[self.var_name].units
+        return units
+
+    @property
     def lats(self):
         """
         Returns:
@@ -76,8 +86,7 @@ class Variable(object):
                 # TODO: Assume the name for now. Must be found in attributes
                 latvals = self.file.variables["latitude"]
 
-        if latvals.shape[0] == 0 :  netcdfpy.util.error("No latitude found for " + self.var_name)
-        print latvals.shape
+        if latvals.shape[0] == 0 : error("No latitude found for " + self.var_name)
         return latvals
 
     @property
@@ -99,7 +108,7 @@ class Variable(object):
                 # TODO: Assume the name for now. Must be found in attributes
                 lonvals = self.file.variables["longitude"]
 
-        if lonvals.shape[0] == 0:  netcdfpy.util.error("No longitude found for " + self.var_name)
+        if lonvals.shape[0] == 0:  error("No longitude found for " + self.var_name)
         return lonvals
 
     @property
@@ -115,7 +124,7 @@ class Variable(object):
             if axis_types[i] == Axis.Time:
                 times = self.file.variables[self.dim_names[i]]
 
-        if times.shape[0] == 0: netcdfpy.util.warning("No time found for "+self.var_name)
+        if times.shape[0] == 0: log(1,"No time found for "+self.var_name)
         return times
 
     @property
@@ -131,9 +140,7 @@ class Variable(object):
             if axis_types[i] == Axis.Realization:
                 members = self.file.variables[self.dim_names[i]]
 
-        print "member:"
-        print members.shape
-        if members.shape[0] == 0: netcdfpy.util.warning("No ensemble members found for " + self.var_name)
+        if members.shape[0] == 0: log(1,"No ensemble members found for " + self.var_name)
         return members
 
     @property
@@ -149,7 +156,7 @@ class Variable(object):
             if axis_types[i] == Axis.Height or axis_types[i] == Axis.Pressure or axis_types[i] == Axis.GeoZ or axis_types[i] == Axis.Hybrid:
                 levels = self.file.variables[self.dim_names[i]]
 
-        if levels.shape[0] == 0: netcdfpy.util.warning("No levels found for " + self.var_name)
+        if levels.shape[0] == 0: log(1,"No levels found for " + self.var_name)
         return levels
 
 
