@@ -4,6 +4,8 @@ import numpy as np
 from netcdfpy.util import log,warning,error
 import re
 import logging
+from datetime import datetime
+import cfunits
 
 logger = logging.getLogger('root')
 
@@ -110,6 +112,26 @@ class Variable(object):
 
         if lonvals.shape[0] == 0:  error("No longitude found for " + self.var_name)
         return lonvals
+
+    @property
+    def datetimes(self):
+        """
+            Return:
+            list()
+        """
+
+        times = []
+        axis_types = self.axis_types
+        for i in range(0, len(axis_types)):
+            if axis_types[i] == Axis.Time:
+                val = self.file.variables[self.dim_names[i]]
+                for t in range(0,len(val)):
+                    epochtime=int(cfunits.Units.conform(val[t],cfunits.Units(val.units),cfunits.Units("seconds since 1970-01-01 00:00:00")))
+                    dt=datetime.utcfromtimestamp(epochtime).strftime('%c')
+                    times.append(datetime.strptime(dt,'%c'))
+
+        if len(times) == 0: log(1, "No time found for " + self.var_name)
+        return times
 
     @property
     def times(self):

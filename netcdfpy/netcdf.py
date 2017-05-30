@@ -6,6 +6,7 @@ import netCDF4
 import numpy as np
 import matplotlib.pyplot as plt
 import cfunits
+from datetime import datetime,date,tzinfo
 
 logger = setup_custom_logger('root')
 
@@ -13,9 +14,6 @@ class Netcdf(object):
     def __init__(self, filename):
         self.filename = filename
         self.file = netCDF4.Dataset(filename, "r")
-
-    def __del__(self):
-        self.file.close()
 
     def num_height(self, field):
         pass
@@ -66,19 +64,31 @@ class Netcdf(object):
                 else:
                     prev_time_steps.append(0)
         else:
-            log(2,"Time provided in call "+str(times))
-            times_in_var = var.times
-            for i in range(0, times_in_var.shape[0]):
-                for j in range(0, len(times)):
-                    # Time steps requested
-                    if i == times[j]:
-                        times_to_read.append(times[j])
-                        if i > 0:
-                            prev_time_steps.append(i-1)
-                        else:
-                            prev_time_steps.append(0)
+            if isinstance(times[0], date):
+                log(2, "Time provided in call as datetime objects")
+                times_in_var = var.datetimes
+                for i in range(0, len(times_in_var)):
+                    #print times_in_var[i].strftime('%Y%m%d%H')
+                    for j in range(0, len(times)):
+                        # Time steps requested
+                        if times_in_var[i] == times[j]:
+                            times_to_read.append(i)
+                            if i > 0:
+                                prev_time_steps.append(i-1)
+                            else:
+                                prev_time_steps.append(0)
 
-                    # TODO: possible to set array indices from input time values?
+            else:
+                times_in_var = var.times
+                for i in range(0, times_in_var.shape[0]):
+                    for j in range(0, len(times)):
+                        # Time steps requested
+                        if i == times[j]:
+                            times_to_read.append(times[j])
+                            if i > 0:
+                                prev_time_steps.append(i-1)
+                            else:
+                                prev_time_steps.append(0)
 
 
         levels_to_read=[]
@@ -231,7 +241,7 @@ class Netcdf(object):
                     for z in range(0, field.shape[3]):
                         for m in range(0, field.shape[4]):
                             interpolated_field[i][t][z][m]=field[ind_x][ind_y][t][z][m]
-                            print ind_x,ind_y,t,z,m,field[ind_x][ind_y][t][z][m]
+                            #print ind_x,ind_y,t,z,m,field[ind_x][ind_y][t][z][m]
             # Comparison
             #field = nn.__interpolated_values__(field,lons,lats,var)
 
