@@ -26,7 +26,7 @@ class Netcdf(object):
         pass
 
     def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None,
-              deaccumulate=False, plot=False, var=None, instantanious=0., units=None ):
+              deaccumulate=False, plot=False, var=None, instantanious=0., units=None, lev_from_ind=False ):
         """
         Assembles a 5D field in order lon,lat,time,height,ensemble
 
@@ -64,6 +64,7 @@ class Netcdf(object):
                 else:
                     prev_time_steps.append(0)
         else:
+            if not isinstance(times,(list,tuple)): error("Times must be a list!")
             if isinstance(times[0], date):
                 log(2, "Time provided in call as datetime objects")
                 times_in_var = var.datetimes
@@ -96,19 +97,26 @@ class Netcdf(object):
             for i in range(0, var.levels.shape[0]):
                 levels_to_read.append(i)
         else:
-            log(2,"Level provided in call. Set index from value")
-            # TODO: specify index
+            log(2, "Level provided in call. lev_from_ind="+str(lev_from_ind))
+            if not isinstance(levels,(list,tuple)): error("Levels must be a list!")
             levels_in_var=var.levels
             for i in range(0, levels_in_var.shape[0]):
                 for j in range (0,len(levels)):
-                    if levels_in_var[i] == levels[j]:
-                        levels_to_read.append(i)
+                    #print lev_from_ind,i, j, levels_in_var[i], levels[j]
+                    if lev_from_ind:
+                        if i == levels[j]:
+                            levels_to_read.append(i)
+                    else:
+                        # NB! Round number to avoid round off when matching
+                        if round(levels_in_var[i],5) == round(levels[j],5):
+                            levels_to_read.append(i)
 
         members_to_read = []
         if members == None:
             for i in range(0, var.members.shape[0]):
                 members_to_read.append(i)
         else:
+            if not isinstance(members,(list,tuple)): error("Members must be a list!")
             log(2,"Ensemble members provided in call")
             members_in_var=var.members
             for i in range(0, members_in_var.shape[0]):
@@ -143,23 +151,24 @@ class Netcdf(object):
                 dims.append(lon_ind)
                 prev_dims.append(lon_ind)
                 mapping[0]=i
-            if types[i] == Axis.GeoY or types[i] == Axis.Lat:
+            elif types[i] == Axis.GeoY or types[i] == Axis.Lat:
                 dims.append(lat_ind)
                 prev_dims.append(lat_ind)
                 mapping[1]=i
-            if types[i] == Axis.Time:
+            elif types[i] == Axis.Time:
                 dims.append(times_to_read)
                 prev_dims.append(prev_time_steps)
                 mapping[2]=i
-            if types[i] == Axis.Height or types[i] == Axis.Pressure:
+            elif var.is_level(types[i]):
                 dims.append(levels_to_read)
                 prev_dims.append(levels_to_read)
                 mapping[3]=i
-            if types[i] == Axis.Realization:
+            elif types[i] == Axis.Realization:
                 dims.append(members_to_read)
                 prev_dims.append(members_to_read)
                 mapping[4]=i
-
+            else:
+                error(str(types[i])+" is not defined!")
 
         log(2,"Read "+var.var_name+" with dimensions: "+str(dims))
         if deaccumulate: log(2,"Deaccumulate previous dimensions: "+str(prev_dims))
@@ -205,7 +214,7 @@ class Netcdf(object):
         return field
 
     def points(self, var_name, lons,lats, levels=None, members=None, times=None, xcoords=None, ycoords=None,
-              deaccumulate=False, interpolation="nearest"):
+              deaccumulate=False, interpolation="nearest",instantanious=0.,lev_from_ind=False):
 
         """
         Assembles a 5D slice and interpolates it to requested positions
@@ -220,7 +229,7 @@ class Netcdf(object):
 
         var = Variable(self.file, var_name)
         field=self.slice(var_name,levels=levels, members=members, times=times, xcoords=xcoords, ycoords=ycoords,
-              deaccumulate=deaccumulate)
+              deaccumulate=deaccumulate,instantanious=instantanious,lev_from_ind=lev_from_ind)
 
         if lons == None or lats == None:
             error("You must set lons and lats when interpolation is set!")

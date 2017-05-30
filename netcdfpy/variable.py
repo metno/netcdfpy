@@ -46,6 +46,11 @@ class Variable(object):
                     types.append(Axis.GeoY)
                 elif re.search("height[0-9]*",dim_name):
                     types.append(Axis.Height)
+                elif re.search("hybrid[0-9]*",dim_name):
+                    types.append(Axis.Hybrid)
+                elif re.search("pressure[0-9]*",dim_name):
+                    types.append(Axis.Pressure)
+                #TODO: GeoZ
                 elif dim_name == "ensemble_member":
                     types.append(Axis.Realization)
                 elif dim_name == "time":
@@ -175,10 +180,14 @@ class Variable(object):
         levels = np.array([])
         axis_types = self.axis_types
         for i in range(0, len(axis_types)):
-            if axis_types[i] == Axis.Height or axis_types[i] == Axis.Pressure or axis_types[i] == Axis.GeoZ or axis_types[i] == Axis.Hybrid:
+            if self.is_level(axis_types[i]):
                 levels = self.file.variables[self.dim_names[i]]
 
         if levels.shape[0] == 0: log(1,"No levels found for " + self.var_name)
         return levels
 
-
+    def is_level(self,axis_type):
+        if axis_type == Axis.Height or axis_type == Axis.Pressure or axis_type == Axis.GeoZ or axis_type == Axis.Hybrid:
+            return True
+        else:
+            return False
