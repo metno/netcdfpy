@@ -86,12 +86,15 @@ class Variable(object):
         for i in range(0, len(axis_types)):
             if axis_types[i] == Axis.Lat:
                 latvals = self.file.variables[self.dim_names[i]]
+                warning("Assumed to 2D in (lon,lat) order")
             elif axis_types[i] == Axis.GeoY:
                 #latvals = self.file.variables[self.dim_names[i]]
 
                 # TODO: if lat/lon are 1D, create a 2D mesh
                 # TODO: Assume the name for now. Must be found in attributes
                 latvals = self.file.variables["latitude"]
+                latvals = np.transpose(latvals, (1, 0))
+
 
         if latvals.shape[0] == 0 : error("No latitude found for " + self.var_name)
         return latvals
@@ -114,6 +117,7 @@ class Variable(object):
                 # TODO: if lat/lon are 1D, create a 2D mesh
                 # TODO: Assume the name for now. Must be found in attributes
                 lonvals = self.file.variables["longitude"]
+                lonvals = np.transpose(lonvals,(1,0))
 
         if lonvals.shape[0] == 0:  error("No longitude found for " + self.var_name)
         return lonvals

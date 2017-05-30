@@ -1,10 +1,9 @@
 from scipy.interpolate import griddata
 from netcdfpy.variable import Variable
+from netcdfpy.util import log
 import numpy as np
 import abc
-import logging
 
-logger = logging.getLogger('root')
 
 class Interpolation(object):
     __metaclass__ = abc.ABCMeta
@@ -31,7 +30,7 @@ class NearestNeighbour(Interpolation):
         lons_vec = np.reshape(lons, lons.size)
         lats_vec = np.reshape(lats, lats.size)
         points = (lons_vec, lats_vec)
-        logging.log(2,"Interpolation to lons:",str(interpolated_lons)+" lats:"+str(interpolated_lats)+" for " +str(var.var_name))
+        log(2,"Interpolation to lons:",str(interpolated_lons)+" lats:"+str(interpolated_lats)+" for " +str(var.var_name))
         interpolated_fields=np.empty([len(interpolated_lons),field.shape[2],field.shape[3],field.shape[4]])
         for t in range(0,field.shape[2]):
             for z in range(0,field.shape[3]):
@@ -46,21 +45,21 @@ class NearestNeighbour(Interpolation):
                     for i in range(0,len(interpolated_lons)):
                         interpolated_fields[i][t][z][m]=interpolated_field[i]
 
-        logging.log(3, "Interpolation finished")
+        log(3, "Interpolation finished")
         return interpolated_fields
 
     def interpolated_values(self,field,interpolated_lons,interpolated_lats,var):
         lats = var.lats
         lons = var.lons
 
-        dim_x=739
-        dim_y=949
+        dim_x=var.lons.shape[0]
+        dim_y=var.lats.shape[1]
         npoints=len(interpolated_lons)
 
         lons_vec = np.reshape(lons,lons.size)
         lats_vec = np.reshape(lats,lats.size)
         points = (lons_vec, lats_vec)
-        logger.log(2,"Interpolation to lons:", str(interpolated_lons) + " lats:" + str(interpolated_lats) + " for " + \
+        log(2,"Interpolation to lons:"+str(interpolated_lons) + " lats:" + str(interpolated_lats) + " for " + \
                                         str(var.var_name))
 
 
@@ -76,7 +75,10 @@ class NearestNeighbour(Interpolation):
         grid_y = np.array(interpolated_lats)
         xi = (grid_x, grid_y)
 
+        log(3,"Dimensions: "+str(dim_x)+" "+str(dim_y)+" "+str(values_vec.shape[0])+" "+
+            str(grid_x.shape[0])+" "+str(grid_y.shape[0]))
         interpolated_field = griddata(points, values_vec, xi, method='nearest')
+        log(3, "griddata finished")
 
         grid_points=[]
         ii = 0
@@ -87,7 +89,7 @@ class NearestNeighbour(Interpolation):
                         grid_points.append([i,j])
                 ii=ii+1
 
-        logging.log(3, "Interpoation finished")
+        log(3, "Interpolation finished")
         return grid_points
 
 class Bilinear(Interpolation):

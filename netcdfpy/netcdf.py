@@ -130,8 +130,8 @@ class Netcdf(object):
         lats=var.lats
 
         # Dimensions of the "problem"
-        dim_x = lons.shape[1]
-        dim_y = lats.shape[0]
+        dim_x = lons.shape[0]
+        dim_y = lats.shape[1]
         dim_t = max(len(times_to_read),1)
         dim_levels = max(len(levels_to_read),1)
         dim_members = max(len(members_to_read),1)
