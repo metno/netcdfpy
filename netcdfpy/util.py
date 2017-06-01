@@ -25,8 +25,10 @@ def log(level,message):
     logger = logging.getLogger('root')
     logger.log(level,message)
 
-    """ Write a information message to console """
-    print "\033[1;92mLEVEL"+str(level)+": " + message + "\033[0m"
+    #TODO Set this globally
+    if level <= 1:
+        """ Write a information message to console """
+        print "\033[1;92mLEVEL"+str(level)+": " + message + "\033[0m"
 
 def info(message):
     logger = logging.getLogger('root')

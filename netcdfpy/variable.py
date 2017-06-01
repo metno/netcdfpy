@@ -139,7 +139,7 @@ class Variable(object):
                     dt=datetime.utcfromtimestamp(epochtime).strftime('%c')
                     times.append(datetime.strptime(dt,'%c'))
 
-        if len(times) == 0: log(1, "No time found for " + self.var_name)
+        if len(times) == 0: log(2, "No time found for " + self.var_name)
         return times
 
     @property
@@ -155,7 +155,7 @@ class Variable(object):
             if axis_types[i] == Axis.Time:
                 times = self.file.variables[self.dim_names[i]]
 
-        if times.shape[0] == 0: log(1,"No time found for "+self.var_name)
+        if times.shape[0] == 0: log(2,"No time found for "+self.var_name)
         return times
 
     @property
@@ -171,7 +171,7 @@ class Variable(object):
             if axis_types[i] == Axis.Realization:
                 members = self.file.variables[self.dim_names[i]]
 
-        if members.shape[0] == 0: log(1,"No ensemble members found for " + self.var_name)
+        if members.shape[0] == 0: log(2,"No ensemble members found for " + self.var_name)
         return members
 
     @property
@@ -187,7 +187,7 @@ class Variable(object):
             if self.is_level(axis_types[i]):
                 levels = self.file.variables[self.dim_names[i]]
 
-        if levels.shape[0] == 0: log(1,"No levels found for " + self.var_name)
+        if levels.shape[0] == 0: log(2,"No levels found for " + self.var_name)
         return levels
 
     def is_level(self,axis_type):

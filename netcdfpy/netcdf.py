@@ -25,7 +25,7 @@ class Netcdf(object):
         """
         pass
 
-    def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None,
+    def slice(self, var_name, levels=None, members=None, times=None, lons=None, lats=None, xcoords=None, ycoords=None,
               deaccumulate=False, plot=False, var=None, instantanious=0., units=None, lev_from_ind=False ):
         """
         Assembles a 5D field in order lon,lat,time,height,ensemble
@@ -37,11 +37,12 @@ class Netcdf(object):
             time (list): Time index. If None, return all.
             xcoords: X-axis coordinates to subset
             ycords: Y-axis coordinates to subset
+            lons: longitudes to interpolate to
+            lats: latitudes to interpolate to
             deaccumulate (boolean): Deaccumulate field
-            var
-            plot
-            instantanious
-            units
+            plot (boolean): plot 2-D result for all times/levels/members
+            instantanious (float): Scaling factor to make an accumulated value as instantanius
+            units (str): CF unit for the variable to be read
             var(object): Call slice with an existing var object
 
         Returns:
@@ -214,7 +215,7 @@ class Netcdf(object):
         return field
 
     def points(self, var_name, lons,lats, levels=None, members=None, times=None, xcoords=None, ycoords=None,
-              deaccumulate=False, interpolation="nearest",instantanious=0.,lev_from_ind=False):
+              deaccumulate=False, interpolation="nearest",instantanious=0.,lev_from_ind=False,units=None):
 
         """
         Assembles a 5D slice and interpolates it to requested positions
@@ -229,7 +230,7 @@ class Netcdf(object):
 
         var = Variable(self.file, var_name)
         field=self.slice(var_name,levels=levels, members=members, times=times, xcoords=xcoords, ycoords=ycoords,
-              deaccumulate=deaccumulate,instantanious=instantanious,lev_from_ind=lev_from_ind)
+              deaccumulate=deaccumulate,instantanious=instantanious,lev_from_ind=lev_from_ind,units=units)
 
         if lons == None or lats == None:
             error("You must set lons and lats when interpolation is set!")

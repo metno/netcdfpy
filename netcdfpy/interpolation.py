@@ -16,6 +16,7 @@ class Interpolation(object):
     def interpolated_values(self):
         raise NotImplementedError('users must define interpolated_values to use this base class')
 
+
 class NearestNeighbour(Interpolation):
 
     def __init__(self):
