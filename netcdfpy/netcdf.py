@@ -239,7 +239,7 @@ class Netcdf(object):
             log(2,"Nearest neighbour")
             if not hasattr(self,"interpolated_values"):
                 nn = NearestNeighbour()
-                self.interpolated_values=nn.interpolated_values(field,lons,lats,var)
+                self.interpolated_values=nn.interpolated_values(lons,lats,var)
 
             log(3,"Closest grid points: "+str(self.interpolated_values))
 
