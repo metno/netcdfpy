@@ -53,7 +53,7 @@ class Netcdf(object):
         else:
             if var.var_name != var_name: error("Mismatch in variable name!")
 
-        if xcoords != None or ycoords != None:
+        if xcoords is not None or ycoords is not None:
             error("Subsetting of the input dimensions not implemented yet!")
 
         log(1,"Reading variable "+var.var_name)
@@ -234,18 +234,18 @@ class Netcdf(object):
         field=self.slice(var_name,levels=levels, members=members, times=times, xcoords=xcoords, ycoords=ycoords,
               deaccumulate=deaccumulate,instantanious=instantanious,lev_from_ind=lev_from_ind,units=units)
 
-        if lons == None or lats == None:
+        if lons is None or lats is None:
             error("You must set lons and lats when interpolation is set!")
 
         interpolated_field = np.empty([len(lons), field.shape[2], field.shape[3], field.shape[4]])
         if interpolation == "nearest":
             log(2,"Nearest neighbour")
             if not hasattr(self,"nn"):
-                nn=NearestNeighbour(lons,lats,var)
+                self.nn=NearestNeighbour(lons,lats,var)
 
             for i in range(0,len(lons)):
-                ind_x = nn.index[i][0]
-                ind_y = nn.index[i][1]
+                ind_x = self.nn.index[i][0]
+                ind_y = self.nn.index[i][1]
                 for t in range(0, field.shape[2]):
                     for z in range(0, field.shape[3]):
                         for m in range(0, field.shape[4]):
@@ -253,13 +253,13 @@ class Netcdf(object):
 
         elif interpolation == "linear":
             if not hasattr(self,"linear"):
-                linear=Linear(lons,lats,var)
+                self.linear=Linear(lons,lats,var)
 
             for t in range(0, field.shape[2]):
                 for z in range(0, field.shape[3]):
                     for m in range(0, field.shape[4]):
                         values=np.reshape(field[:,:,t,z,m],(field.shape[0],field.shape[1]))
-                        interpolated_field[:,t,z,m]=linear.interpolate(values)
+                        interpolated_field[:,t,z,m]=self.linear.interpolate(values)
 
         else:
             error("Interpolation type "+interpolation+" not implemented!")
