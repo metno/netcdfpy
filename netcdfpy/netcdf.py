@@ -1,7 +1,7 @@
 from netcdfpy.interpolation import Interpolation
 from netcdfpy.util import error,info,log,warning,setup_custom_logger
 from netcdfpy.variable import Variable,Axis
-from netcdfpy.interpolation import NearestNeighbour,Bilinear,Linear
+from netcdfpy.interpolation import NearestNeighbour,Linear
 import netCDF4
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,25 +25,24 @@ class Netcdf(object):
         """
         pass
 
-    def slice(self, var_name, levels=None, members=None, times=None, lons=None, lats=None, xcoords=None, ycoords=None,
+    def slice(self, var_name, levels=None, members=None, times=None, xcoords=None, ycoords=None,
               deaccumulate=False, plot=False, var=None, instantanious=0., units=None, lev_from_ind=False ):
         """
         Assembles a 5D field in order lon,lat,time,height,ensemble
 
         Arguments:
             var_name (str): Name of field to retrieve
-            height (list): Height index. If None, return all.
-            ens (list): Ensemble index. If None, return all.
+            levels (list): Height index. If None, return all.
+            members (list): Ensemble index. If None, return all.
             time (list): Time index. If None, return all.
             xcoords: X-axis coordinates to subset
             ycords: Y-axis coordinates to subset
-            lons: longitudes to interpolate to
-            lats: latitudes to interpolate to
-            deaccumulate (boolean): Deaccumulate field
-            plot (boolean): plot 2-D result for all times/levels/members
+            deaccumulate (bool): Deaccumulate field
+            plot (bool): plot 2-D result for all times/levels/members
             instantanious (float): Scaling factor to make an accumulated value as instantanius
             units (str): CF unit for the variable to be read
             var(object): Call slice with an existing var object
+            lev_from_ind (bool): level list are indices and not values
 
         Returns:
          np.array: 5D array with values
@@ -53,6 +52,9 @@ class Netcdf(object):
             var=Variable(self.file,var_name)
         else:
             if var.var_name != var_name: error("Mismatch in variable name!")
+
+        if xcoords != None or ycoords != None:
+            error("Subsetting of the input dimensions not implemented yet!")
 
         log(1,"Reading variable "+var.var_name)
         times_to_read=[]
@@ -235,25 +237,29 @@ class Netcdf(object):
         if lons == None or lats == None:
             error("You must set lons and lats when interpolation is set!")
 
+        interpolated_field = np.empty([len(lons), field.shape[2], field.shape[3], field.shape[4]])
         if interpolation == "nearest":
             log(2,"Nearest neighbour")
-            if not hasattr(self,"interpolated_values"):
-                nn = NearestNeighbour()
-                self.interpolated_values=nn.interpolated_values(lons,lats,var)
+            if not hasattr(self,"nn"):
+                nn=NearestNeighbour(lons,lats,var)
 
-            log(3,"Closest grid points: "+str(self.interpolated_values))
-
-            interpolated_field=np.empty([len(lons),field.shape[2],field.shape[3],field.shape[4]])
             for i in range(0,len(lons)):
-                ind_x = self.interpolated_values[i][0]
-                ind_y = self.interpolated_values[i][1]
+                ind_x = nn.index[i][0]
+                ind_y = nn.index[i][1]
                 for t in range(0, field.shape[2]):
                     for z in range(0, field.shape[3]):
                         for m in range(0, field.shape[4]):
                             interpolated_field[i][t][z][m]=field[ind_x][ind_y][t][z][m]
-                            #print ind_x,ind_y,t,z,m,field[ind_x][ind_y][t][z][m]
-            # Comparison
-            #field = nn.__interpolated_values__(field,lons,lats,var)
+
+        elif interpolation == "linear":
+            if not hasattr(self,"linear"):
+                linear=Linear(lons,lats,var)
+
+            for t in range(0, field.shape[2]):
+                for z in range(0, field.shape[3]):
+                    for m in range(0, field.shape[4]):
+                        values=np.reshape(field[:,:,t,z,m],(field.shape[0],field.shape[1]))
+                        interpolated_field[:,t,z,m]=linear.interpolate(values)
 
         else:
             error("Interpolation type "+interpolation+" not implemented!")

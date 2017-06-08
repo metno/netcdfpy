@@ -1,5 +1,4 @@
 import netCDF4
-import netCDF4
 import numpy as np
 from netcdfpy.util import log,warning,error
 import re
