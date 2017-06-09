@@ -240,20 +240,27 @@ class Netcdf(object):
         interpolated_field = np.empty([len(lons), field.shape[2], field.shape[3], field.shape[4]])
         if interpolation == "nearest":
             log(2,"Nearest neighbour")
-            if not hasattr(self,"nn"):
-                self.nn=NearestNeighbour(lons,lats,var)
+            if not hasattr(self,"nearest"):
+                self.nearest=NearestNeighbour(lons,lats,var)
+            else:
+                if not self.nearest.interpolator_ok(field.shape[0],field.shape[1]):
+                    self.nearest = NearestNeighbour(lons, lats, var)
 
             for i in range(0,len(lons)):
-                ind_x = self.nn.index[i][0]
-                ind_y = self.nn.index[i][1]
+                ind_x = self.nearest.index[i][0]
+                ind_y = self.nearest.index[i][1]
                 for t in range(0, field.shape[2]):
                     for z in range(0, field.shape[3]):
                         for m in range(0, field.shape[4]):
                             interpolated_field[i][t][z][m]=field[ind_x][ind_y][t][z][m]
 
         elif interpolation == "linear":
+            log(2, "Linear interpolation")
             if not hasattr(self,"linear"):
                 self.linear=Linear(lons,lats,var)
+            else:
+                if not self.linear.interpolator_ok(field.shape[0], field.shape[1]):
+                    self.linear = Linear(lons, lats, var)
 
             for t in range(0, field.shape[2]):
                 for z in range(0, field.shape[3]):

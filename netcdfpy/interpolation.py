@@ -32,15 +32,29 @@ def distance(lat1, lon1, lat2, lon2):
 class Interpolation(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self,type):
+    def __init__(self,type,nx,ny):
         self.type=type
+        self.nx=nx
+        self.ny=ny
 
+    @abc.abstractmethod
+    def interpolator_ok(self,nx,ny):
+        raise NotImplementedError('users must define interpolator_ok to use this base class')
 
 class NearestNeighbour(Interpolation):
 
     def __init__(self,interpolated_lons,interpolated_lats,var):
+        nx = var.lons.shape[0]
+        ny = var.lats.shape[1]
         self.index=self.create_index(interpolated_lons, interpolated_lats, var)
-        super(NearestNeighbour, self).__init__("nearest")
+        super(NearestNeighbour, self).__init__("nearest",nx,ny)
+
+    def interpolator_ok(self, nx, ny):
+        if self.nx == nx and self.ny == ny:
+            print "Assume interpolator is ok because dimensions are the same"
+            return True
+        else:
+            return False
 
     def create_index(self,interpolated_lons, interpolated_lats, var):
         lats = var.lats
@@ -84,8 +98,16 @@ class NearestNeighbour(Interpolation):
 class Linear(Interpolation):
 
     def __init__(self,int_lons,int_lats,var):
-        self.setup_weights(int_lons, int_lats, var)
-        super(Linear, self).__init__("linear")
+
+        nx,ny=self.setup_weights(int_lons, int_lats, var)
+        super(Linear, self).__init__("linear",nx,ny)
+
+    def interpolator_ok(self, nx, ny):
+        if self.nx == nx and self.ny == ny:
+            log(2,"Assume interpolator is ok because dimensions are the same")
+            return True
+        else:
+            return False
 
     def setup_weights(self, int_lons, int_lats, var):
         log(1, "Setup weights for linear interpolation")
@@ -105,6 +127,7 @@ class Linear(Interpolation):
 
         # Setup the weights
         self.interp_weights(xy, uv)
+        return lons.shape[0],lons.shape[1]
 
     def interp_weights(self,xy, uv, d=2):
         tri = qhull.Delaunay(xy)
