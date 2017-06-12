@@ -32,6 +32,7 @@ class Variable(object):
     @property
     def axis_types(self):
         types=[]
+        if self.var_name not in self.file.variables: error(self.var_name + " is missing in file!")
         if self.file.variables[self.var_name]:
             for i in range(0, len(self.file.variables[self.var_name].dimensions)):
                 dim_name = self.file.variables[self.var_name].dimensions[i]
