@@ -13,6 +13,7 @@ logger = setup_custom_logger('root')
 class Netcdf(object):
     def __init__(self, filename):
         self.filename = filename
+        print filename
         self.file = netCDF4.Dataset(filename, "r")
 
     def num_height(self, field):
@@ -241,10 +242,10 @@ class Netcdf(object):
         if interpolation == "nearest":
             log(2,"Nearest neighbour")
             if not hasattr(self,"nearest"):
-                self.nearest=NearestNeighbour(lons,lats,var)
+                self.nearest=NearestNeighbour(lons,lats,var.lons,var.lats)
             else:
-                if not self.nearest.interpolator_ok(field.shape[0],field.shape[1]):
-                    self.nearest = NearestNeighbour(lons, lats, var)
+                if not self.nearest.interpolator_ok(field.shape[0],field.shape[1],var.lons,var.lats):
+                    self.nearest = NearestNeighbour(lons, lats, var.lons,var.lats)
 
             for i in range(0,len(lons)):
                 ind_x = self.nearest.index[i][0]
@@ -257,10 +258,10 @@ class Netcdf(object):
         elif interpolation == "linear":
             log(2, "Linear interpolation")
             if not hasattr(self,"linear"):
-                self.linear=Linear(lons,lats,var)
+                self.linear=Linear(lons,lats,var.lons,var.lats)
             else:
                 if not self.linear.interpolator_ok(field.shape[0], field.shape[1]):
-                    self.linear = Linear(lons, lats, var)
+                    self.linear = Linear(lons, lats, var.lons,var.lats)
 
             for t in range(0, field.shape[2]):
                 for z in range(0, field.shape[3]):
